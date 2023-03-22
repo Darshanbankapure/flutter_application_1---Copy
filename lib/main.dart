@@ -4,6 +4,7 @@
 
 import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -253,10 +254,15 @@ class _MyHomePageState extends State<MyHomePage> {
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white, foregroundColor: Colors.black,
                           textStyle: const TextStyle(fontSize: 20)),
-                      onPressed: () {
-                        // Respond to button press
-                        fetchData();
-                      },
+                      onPressed: () async {
+                            final matrix = [
+                                  [1, 2],
+                                  [3, 4],
+                                      ];
+                                final collection = FirebaseFirestore.instance.collection('matrices');
+                                await collection.add({'matrix': matrix});
+                                },
+                                
                       child: Text('Yes'),
                     )),
 
@@ -279,7 +285,11 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: showNotifications,
+        onPressed: () async {
+          final collection = FirebaseFirestore.instance.collection('matrices');
+          final querySnapshot = await collection.get();
+          final matrix = querySnapshot.docs.first.get('matrix').map((row) => row.map((elem) => elem + 1).toList()).toList();
+        },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
         //This trailing comma makes auto-formatting nicer for build methods.
