@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "880790415520",
+    "firebase_url": "https://sleep-apnea-21cc3-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "sleep-apnea-21cc3",
+    "storage_bucket": "sleep-apnea-21cc3.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:880790415520:android:6cd5786be7a1ca060901c5",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "880790415520-ovfkgd66hh67egrrg8262c5vo0rvkdk3.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBy2969Zej0bMtJd50GsyIKX3GY-_Fb8fc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "880790415520-ovfkgd66hh67egrrg8262c5vo0rvkdk3.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "880790415520-k3kftdcc9bu6hft45diaguuhosupsusq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.flutterApplication1"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
