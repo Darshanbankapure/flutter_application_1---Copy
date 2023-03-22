@@ -35,6 +35,16 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+    );    
   runApp(const MyApp());
 }
 
@@ -119,7 +129,56 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
-  void _incrementCounter() {
+  @override
+  void initState(){
+    super.initState();
+    FirebaseMessaging.onMessage.listen((RemoteMessage message){
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+      if(notification!= null && android!= null){
+          flutterLocalNotificationsPlugin.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                channel.id,
+                channel.name,
+                //channel.description,
+                color: Colors.blue,
+                playSound: true,
+                icon: '@mipmap/ic_launcher',
+              ),
+            )
+          );
+      }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message){
+        print('A new OnMessageOpened App event was published!');
+        RemoteNotification? notification = message.notification;
+        AndroidNotification? android = message.notification?.android;
+        if(notification!=null && android !=null){
+          showDialog(
+            context: context,
+            builder: (_) {
+              return AlertDialog(
+                title: Text(notification.title?? ''),
+                content: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(notification.body?? ''),
+                    ],
+                  ),
+                   ),
+              );
+            });
+        }
+    });
+  }
+
+  void showNotifications() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
       // changed in this State, which causes it to rerun the build method below
@@ -128,6 +187,19 @@ class _MyHomePageState extends State<MyHomePage> {
       // called again, and so nothing would appear to happen.
       _counter++;
     });
+    flutterLocalNotificationsPlugin.show(0,
+      "Testing $_counter",
+      "How you doin?",
+      NotificationDetails(
+        android : AndroidNotificationDetails(
+          channel.id,
+          channel.name,
+          importance: Importance.high,
+          color: Colors.blue,
+          playSound: true,
+          icon: '@mipmap/ic_launcher',
+        )
+      ));
   }
 
   @override
@@ -196,7 +268,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           textStyle: const TextStyle(fontSize: 20)),
                       onPressed: () {
                         // Respond to button press
-                        fetchData();
+                        //fetchData();
+                        showNotifications();
                       },
                       child: Text('No'),
                     ))
@@ -205,11 +278,11 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      //floatingActionButton: FloatingActionButton(
-        //onPressed: _incrementCounter,
-        //tooltip: 'Increment',
-        //child: const Icon(Icons.add),
-      //), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+      floatingActionButton: FloatingActionButton(
+        onPressed: showNotifications,
+        tooltip: 'Increment',
+        child: const Icon(Icons.add),
+        //This trailing comma makes auto-formatting nicer for build methods.
+    ),);
   }
 }
