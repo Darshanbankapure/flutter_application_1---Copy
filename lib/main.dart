@@ -8,12 +8,15 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 //import health package
 import 'package:health/health.dart';
 import 'package:wear/wear.dart';
 import 'firebase_options.dart';
+
+FirebaseDatabase database = FirebaseDatabase.instance;
+
 
 const AndroidNotificationChannel channel = AndroidNotificationChannel(
   'high_importance_channel', //id
@@ -65,7 +68,7 @@ Future<List<HealthDataPoint>> fetchData() async {
 
   // Fetch the SPO2 and BP data for the past week
   DateTime endDate = DateTime.now();
-  DateTime startDate = endDate.subtract(Duration(hours: 10));
+  DateTime startDate = endDate.subtract(const Duration(hours: 10));
   List<HealthDataPoint> data = await health.getHealthDataFromTypes(startDate, endDate, types);
 
   // Do something with the data
@@ -81,7 +84,32 @@ Future<List<HealthDataPoint>> fetchData() async {
 
   return data;
 }
+Future<void> storeMatrix(matrix) async {
+  try {
+    await FirebaseFirestore.instance.collection('matrices').doc('matrix1').set({
+      'matrix': matrix,
+    });
+    print('Matrix stored successfully');
+  } catch (error) {
+    print('Error storing matrix: $error');
+  }
+}
+void storeMatrixToFirebase(matrix) {
+  final databaseReference = FirebaseDatabase.instance.ref();
 
+  // Convert the matrix to a nested Map that can be stored in Firebase
+  //final data = {};
+  // for (int i = 0; i < matrix.length; i++) {
+  //   final row = {};
+  //   for (int j = 0; j < matrix[i].length; j++) {
+  //     row['col$j'] = matrix[i][j];
+  //   }
+  //   data['row$i'] = row;
+  // }
+
+  // Store the matrix in Firebase
+  databaseReference.child('matrix').set(matrix);
+}
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -249,35 +277,30 @@ class _MyHomePageState extends State<MyHomePage> {
                 mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Padding(
-                    padding: EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16.0),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white, foregroundColor: Colors.black,
                           textStyle: const TextStyle(fontSize: 20)),
                       onPressed: () async {
-                            final matrix = [
-                                  [1, 2],
-                                  [3, 4],
-                                      ];
-                                final collection = FirebaseFirestore.instance.collection('matrices');
-                                await collection.add({'matrix': matrix});
-                                },
-                                
-                      child: Text('Yes'),
+                        const matrix = 'kesh is very dumb';
+                        storeMatrix(matrix);
+                        },        
+                      child: const Text('Yes'),
                     )),
 
                 Padding(
-                    padding: EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(16.0),
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white, foregroundColor: Colors.black,
                           textStyle: const TextStyle(fontSize: 20)),
-                      onPressed: () {
+                      onPressed: () async {
                         // Respond to button press
                         //fetchData();
                         showNotifications();
                       },
-                      child: Text('No'),
+                      child: const Text('No'),
                     ))
               ]
             )
@@ -288,7 +311,7 @@ class _MyHomePageState extends State<MyHomePage> {
         onPressed: () async {
           final collection = FirebaseFirestore.instance.collection('matrices');
           final querySnapshot = await collection.get();
-          final matrix = querySnapshot.docs.first.get('matrix').map((row) => row.map((elem) => elem + 1).toList()).toList();
+          final matrix = querySnapshot.docs.first.get('matrix');
         },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
