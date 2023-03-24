@@ -3,13 +3,17 @@
 //the model is then used to predict the activity of the user
 
 import 'dart:ui';
-
+import 'dart:async';
+import 'dart:html';
+import 'firebase_options.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+
 //import health package
 import 'package:health/health.dart';
 import 'package:wear/wear.dart';
@@ -94,18 +98,75 @@ Future<void> storeMatrix(matrix) async {
     print('Error storing matrix: $error');
   }
 }
+List<List<double>> convertStringToMatrix(String data) {
+  List<List<double>> matrix = [];
+  List<String> rows = data.split(";");
+  for (var row in rows) {
+    List<double> rowList = [];
+    List<String> rowValues = row.split(",");
+    for (var value in rowValues) {
+      rowList.add(double.parse(value));
+    }
+    matrix.add(rowList);
+  }
+  return matrix;
+}
+String matrixToSingleLineString(List<List<int>> matrix) {
+  String result = '';
+  for (int i = 0; i < matrix.length; i++) {
+    for (int j = 0; j < matrix[i].length; j++) {
+      result += '${matrix[i][j]} ';
+    }
+  }
+  return result.trim();
+}
+List<List<int>> singleLineStringToMatrix(String singleLineString) {
+  List<List<int>> matrix = [];
+  List<String> elements = singleLineString.trim().split(' ');
+  int numRows = elements.length ~/ 3;
+  for (int i = 0; i < numRows; i++) {
+    List<int> row = elements.sublist(i * 3, (i + 1) * 3).map(int.parse).toList();
+    matrix.add(row);
+  }
+  return matrix;
+}
+Future<List<List<int>>> getStringDataFromFirebase() async {
+  final collectionReference = FirebaseFirestore.instance.collection('matrices');
+  final documentSnapshot = await collectionReference.doc('matrix1').get();
+
+  // Parse the string data into a matrix
+  final matrixString = documentSnapshot.data()!['matrix'] as String;
+  final matrix = singleLineStringToMatrix(matrixString);
+  print(matrix);
+  return matrix;
+}
+Future<void> getFirebaseData() async {
+  FirebaseFirestore.instance
+      .collection('matrices')
+      .doc('matrix1')
+      .get()
+      .then((DocumentSnapshot documentSnapshot) {
+    if (documentSnapshot.exists) {
+      String data = documentSnapshot.reference.toString();
+      List<List<double>> matrix = singleLineStringToMatrix(data).cast<List<double>>();
+      print(matrix);
+    } else {
+      print('Document does not exist on the database');
+    }
+  });
+}
 void storeMatrixToFirebase(matrix) {
   final databaseReference = FirebaseDatabase.instance.ref();
-
+  
   // Convert the matrix to a nested Map that can be stored in Firebase
-  //final data = {};
-  // for (int i = 0; i < matrix.length; i++) {
-  //   final row = {};
-  //   for (int j = 0; j < matrix[i].length; j++) {
-  //     row['col$j'] = matrix[i][j];
-  //   }
-  //   data['row$i'] = row;
-  // }
+  final data = {};
+  for (int i = 0; i < matrix.length; i++) {
+    final row = {};
+    for (int j = 0; j < matrix[i].length; j++) {
+    row['col$j'] = matrix[i][j];
+    }
+  data['row$i'] = row;
+  }
 
   // Store the matrix in Firebase
   databaseReference.child('matrix').set(matrix);
@@ -157,7 +218,12 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
+  // doc ids
+  List<String> docIDs=[];
+  Future getDocId() async{
+    await FirebaseFirestore.instance.collection('matrices').get();
 
+  }
   @override
   void initState(){
     super.initState();
@@ -182,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
           );
       }
     });
-
+    
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message){
         print('A new OnMessageOpened App event was published!');
         RemoteNotification? notification = message.notification;
@@ -283,8 +349,9 @@ class _MyHomePageState extends State<MyHomePage> {
                           backgroundColor: Colors.white, foregroundColor: Colors.black,
                           textStyle: const TextStyle(fontSize: 20)),
                       onPressed: () async {
-                        const matrix = 'kesh is very dumb';
-                        storeMatrix(matrix);
+                        List<List<int>> matrix = [[1, 2, 3],[4, 5, 6],[7, 8, 9]];
+                        String singleLineString = matrixToSingleLineString(matrix);
+                        storeMatrix(singleLineString);
                         },        
                       child: const Text('Yes'),
                     )),
@@ -298,7 +365,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: () async {
                         // Respond to button press
                         //fetchData();
-                        showNotifications();
+                        getStringDataFromFirebase();
+                        
                       },
                       child: const Text('No'),
                     ))
@@ -309,9 +377,9 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final collection = FirebaseFirestore.instance.collection('matrices');
-          final querySnapshot = await collection.get();
-          final matrix = querySnapshot.docs.first.get('matrix');
+          List<List<int>> matrix = [[1, 2, 3],[4, 5, 10],[7, 8, 9]];
+          String singleLineString = matrixToSingleLineString(matrix);
+          storeMatrix(singleLineString);
         },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
