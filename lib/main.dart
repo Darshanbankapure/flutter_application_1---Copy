@@ -61,7 +61,7 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-Future<List> fetchData(int a) async {
+Future<void> fetchData(int a) async {
   List<HealthDataType> types = [
     //get blood oxygen data
     HealthDataType.BLOOD_OXYGEN,
@@ -78,34 +78,34 @@ Future<List> fetchData(int a) async {
   // Fetch the SPO2 and BP data for the past week
   DateTime endDate = DateTime.now();
   DateTime startDate = endDate.subtract(const Duration(hours: 10));
-  List<HealthDataPoint> data = await health.getHealthDataFromTypes(startDate, endDate, types);
+  List listA = await health.getHealthDataFromTypes(startDate, endDate, types);
   int a=0;
   // Do something with the data
   //train function goes here
     //get this matrix
-  Future<List<double>> initial_coef = getStringDataFromFirebase();
+  List<double> initialCoef = await getStringDataFromFirebase();
   
   //append the integer a at the end of our data listA
-  var listA;
+
   listA.add(a);
   // Do something with the data
   //train function goes here
-  final vec = Vector.fromList(initial_coef as List<num>);
+  final vec = Vector.fromList(initialCoef);
 
-  final initial_vec = Matrix.fromColumns([vec]);
+  final initialVec = Matrix.fromColumns([vec]);
 
   final features = DataFrame([['spo2', 'gluc', 'bps', 'bpd', 'label'], listA]);
 
-  final model = LinearRegressor.SGD(features, 'output', fitIntercept: false, initialCoefficients: initial_vec);
+  final model = LinearRegressor.SGD(features, 'label', fitIntercept: false, initialCoefficients: initialVec);
 
-  initial_coef = model.coefficients.toList() as Future<List<double>>;
-  String singleLineString = matrixToSingleLineString(initial_coef as List<double>);
+  initialCoef = model.coefficients.toList();
+  String singleLineString = matrixToSingleLineString(initialCoef);
   storeMatrix(singleLineString);
 
   //write the matrix back
-  return listA;
+  
 }
-Future<void> storeMatrix(matrix) async {
+Future<void> storeMatrix(String matrix) async {
   try {
     await FirebaseFirestore.instance.collection('matrices').doc('matrix1').set({
       'matrix': matrix,
@@ -114,19 +114,6 @@ Future<void> storeMatrix(matrix) async {
   } catch (error) {
     print('Error storing matrix: $error');
   }
-}
-List<List<double>> convertStringToMatrix(String data) {
-  List<List<double>> matrix = [];
-  List<String> rows = data.split(";");
-  for (var row in rows) {
-    List<double> rowList = [];
-    List<String> rowValues = row.split(",");
-    for (var value in rowValues) {
-      rowList.add(double.parse(value));
-    }
-    matrix.add(rowList);
-  }
-  return matrix;
 }
 String matrixToSingleLineString(List<double> matrix) {
   String result = '';
@@ -154,37 +141,7 @@ Future<List<double>> getStringDataFromFirebase() async {
   final matrix = singleLineStringToMatrix(matrixString);
   return matrix;
 }
-Future<void> getFirebaseData() async {
-  FirebaseFirestore.instance
-      .collection('matrices')
-      .doc('matrix1')
-      .get()
-      .then((DocumentSnapshot documentSnapshot) {
-    if (documentSnapshot.exists) {
-      String data = documentSnapshot.reference.toString();
-      List<List<double>> matrix = singleLineStringToMatrix(data).cast<List<double>>();
-      print(matrix);
-    } else {
-      print('Document does not exist on the database');
-    }
-  });
-}
-void storeMatrixToFirebase(matrix) {
-  final databaseReference = FirebaseDatabase.instance.ref();
-  
-  // Convert the matrix to a nested Map that can be stored in Firebase
-  final data = {};
-  for (int i = 0; i < matrix.length; i++) {
-    final row = {};
-    for (int j = 0; j < matrix[i].length; j++) {
-    row['col$j'] = matrix[i][j];
-    }
-  data['row$i'] = row;
-  }
 
-  // Store the matrix in Firebase
-  databaseReference.child('matrix').set(matrix);
-}
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -364,9 +321,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           backgroundColor: Colors.white, foregroundColor: Colors.black,
                           textStyle: const TextStyle(fontSize: 20)),
                       onPressed: () async {
-                        List<double> initial_coef = [1.0, 1.0, 0.0, 0.0];
-                        String singleLineString = matrixToSingleLineString(initial_coef);
-                        storeMatrix(singleLineString);
+                        fetchData(1);
                         },        
                       child: const Text('Yes'),
                     )),
@@ -380,10 +335,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       onPressed: () async {
                         // Respond to button press
                         //fetchData();
-                        fetchData(0);
-                        
-
-                        
+                        fetchData(0);  
                       },
                       child: const Text('No'),
                     ))
@@ -392,16 +344,6 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-        List<double> initial_coef = await getStringDataFromFirebase();
-        
-        String singleLineString = matrixToSingleLineString(initial_coef);
-        storeMatrix(singleLineString);
-        },
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-        //This trailing comma makes auto-formatting nicer for build methods.
-    ),);
+      );
   }
 }
