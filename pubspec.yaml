@@ -45,7 +45,11 @@ dependencies:
   firebase_database: ^10.0.16
   firebase_ml_model_downloader: ^0.2.0+13
   flutter_local_notifications: ^13.0.0
-  
+  linalg : ^0.4.0
+  starflut: ^1.0.0
+  ml_algo: ^16.17.7
+  ml_dataframe: ^1.6.0
+  ml_linalg: ^13.11.30
 
 dev_dependencies:
   flutter_test:
